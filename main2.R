@@ -1,92 +1,3 @@
-# Libraries
-library("tidyverse")
-library("knitr")
-library("stargazer")
-library("haven")
-library("descr")
-library("broom")
-library("AER")
-
-# Imports
-ppen97 <- read_dta("RAW/PPEN97.dta") %>%
-  rename(score_1 = scglob) %>%
-  mutate(anai = 1900 + anai)
-
-psen95 <- read_dta("RAW/PSEN95.dta") %>%
-  rename(
-    score_f_6 = franel,
-    score_m_6 = mathel,
-    score_f_9 = brevfra1,
-    score_m_9 = brevmat1,
-    score_fl_9 = brevlv11
-  ) %>%
-  mutate(
-    score_f_9 = 5 * score_f_9,
-    score_m_9 = 5 * score_m_9,
-    score_fl_9 = 5 * score_fl_9
-  )
-
-# Function counting NAs
-na_frequency <- function(x) {
-  100 * mean(is.na(x))
-}
-
-summary97 <- ppen97 %>%
-  select(score_1, score_f_3, score_m_3) %>%
-  summarize(
-    var = names(.),
-    median = sapply(., median, na.rm = TRUE),
-    mean = sapply(., mean, na.rm = TRUE),
-    min = sapply(., min, na.rm = TRUE),
-    max = sapply(., max, na.rm = TRUE),
-    sd = sapply(., sd, na.rm = TRUE),
-    `NAs (%)` = sapply(., na_frequency)
-  )
-
-summary95 <- psen95 %>%
-  select(
-    score_f_6, score_m_6, score_f_9,
-    score_m_9, score_fl_9) %>%
-  summarize(
-    var = names(.),
-    median = sapply(., median, na.rm = TRUE),
-    mean = sapply(., mean, na.rm = TRUE),
-    min = sapply(., min, na.rm = TRUE),
-    max = sapply(., max, na.rm = TRUE),
-    sd = sapply(., sd, na.rm = TRUE),
-    `NAs (%)` = sapply(., na_frequency)
-  )
-
-ppen97 <- ppen97 %>%
-  mutate(
-    sexe = as.factor(sexe - 1),
-    prior_area_1 = as.factor(prior_area_1 - 1),
-    prior_area_3 = as.factor(prior_area_3 - 1),
-    public_1 = as.factor(public_1 - 1),
-    public_3 = as.factor(public_3 - 1),
-    nati = as.factor(if_else(nati == 100, 1, 0)),
-    age_1 = 12 * (1997 - anai) + 10 - mnai,
-    age_3 = 12 * (yr_3 - anai) + 10 - mnai,
-    relative_age = 12 - mnai
-  )
-
-psen95 <- psen95 %>%
-  mutate(
-    anai = 1900 + as.integer(substr(datenai, 5, 6)),
-    mnai = as.integer(substr(datenai, 3, 4)),
-    sexe = as.factor(as.integer(sexe) - 1),
-    prior_area_6 = as.factor(prior_area_6 - 1),
-    prior_area_9 = as.factor(prior_area_9 - 1),
-    public_6 = as.factor(public_6 - 1),
-    public_9 = as.factor(public_9 - 1),
-    nati = as.factor(if_else(nateleve == 100, 1, 0)),
-    age_6 = 12 * (yr_6 - anai) + 10 - mnai,
-    age_9 = 12 * (yr_9 - anai) + 6 - mnai,
-    relative_age = 12 - mnai
-  )
-
-
-
 ### Partie 3 ###
 
 ### 1)
@@ -124,13 +35,49 @@ psen95 <- psen95 %>%
 #To put it differently, it identifies the average treatment effect on compliers, and thus correspond to a LATE.
 
 ### 3)
-
-#```{r, include = F, message = F}
+# Ca c'est pour la partie 2
+```{r, include = F, message = F}
 reg1 <- lm(score_1~age_1, ppen97)
 regm3 <- lm(score_m_3~age_3, ppen97)
 regf3 <- lm(score_f_3~age_3, ppen97)
-#```
+```
 
-#```{r, echo = F, results = 'asis'}
-stargazer(reg1, regm3, regf3, header=FALSE, type='latex', title = "Naïve OLS", dep.var.caption = "Scores", dep.var.labels = c("Year 1: Global score", "Year 3: Math", "Year 3: French"), covariate.labels = c("Age in Months (Year 1 Exam)", "Age in Months (Year 3 Exam)"))
-#```
+```{r, echo = F, results = 'asis'}
+stargazer(reg1, regm3, regf3, header=FALSE, type='latex', title = "Naïve OLS", dep.var.caption = "Scores", dep.var.labels = c("Year 1: Global score", "Year 3: Math", "Year 3: French"), covariate.labels = c("Age in Months (Year 1)", "Age in Months (Year 3)"))
+```
+
+#Ca c'est pour la partie 3
+#First stage 
+```{r, include = F, message = F}
+first_stage_1 <- lm(age_1~relative_age, ppen97)
+first_stage_m_3 <- lm(age_3~relative_age, ppen97)
+first_stage_f_3 <- lm(age_3~relative_age, ppen97)
+```
+# oui c'est normal que year 3 first stages math and french soient les mêmes. c con mais on est la pour reproduire alors on reproduit.
+#Reduce form
+
+```{r, echo = F, results = 'asis'}
+stargazer(first_stage_1, first_stage_m_3, first_stage_f_3, header=FALSE, type='latex', title = "First stage", dep.var.caption = "Scores", dep.var.labels = c("Year 1: Global score", "Year 3: Math", "Year 3: French"), covariate.labels = c("Age in Months (Year 1)", "Age in Months (Year 3)"))
+```
+
+#Reduced form
+```{r, include = F, message = F}
+reduced_form_1 <- lm(score_1~relative_age, ppen97)
+reduced_form_m_3 <- lm(score_m_3~relative_age, ppen97)
+reduced_form_f_3 <- lm(score_f_3~relative_age, ppen97)
+```
+
+```{r, echo = F, results = 'asis'}
+stargazer(reduced_form_1, reduced_form_m_3, reduced_form_f_3, header=FALSE, type='latex', title = "First stage", dep.var.caption = "Scores", dep.var.labels = c("Year 1: Global score", "Year 3: Math", "Year 3: French"), covariate.labels = c("Age in Months (Year 1)", "Age in Months (Year 3)"))
+```
+
+# Au cas ou ca marche pas reduced form on met ca pour reduced form
+```{r, include = F, message = F}
+iv_reg1 <- ivreg(score_1 ~ age_1 | relative_age, ppen97)
+iv_regm3 <- ivreg(score_m_3 ~ age_3 | relative_age, ppen97)
+iv_regf3 <- ivreg(score_f_3 ~ age_3 | relative_age, ppen97)
+```
+
+```{r, echo = F, results = 'asis'}
+stargazer(iv_reg1, iv_regm3, iv_regf3, header=FALSE, type='latex', title = "IV estimation", dep.var.caption = "Scores", dep.var.labels = c("Year 1: Global score", "Year 3: Math", "Year 3: French"), covariate.labels = c("Age in Months (Year 1)", "Age in Months (Year 3)"))
+```

@@ -28,11 +28,6 @@ psen95 <- read_dta("RAW/PSEN95.dta") %>%
     score_f_9 = brevfra1,
     score_m_9 = brevmat1,
     score_fl_9 = brevlv11
-  ) %>%
-  mutate(
-    score_f_9 = score_f_9,
-    score_m_9 = score_m_9,
-    score_fl_9 = score_fl_9
   )
 ```
 
@@ -87,7 +82,7 @@ We notice that year 9 contains more missing values with almost 40% for `score_f_
 
 ```{r, echo = F}
 ppen97 <- ppen97 %>%
-  mutate(
+  mutate( #clean
     sexe = as.factor(sexe - 1),
     prior_area_1 = as.factor(prior_area_1 - 1),
     prior_area_3 = as.factor(prior_area_3 - 1),
@@ -97,10 +92,15 @@ ppen97 <- ppen97 %>%
     age_1 = 12 * (1997 - anai) + 10 - mnai,
     age_3 = 12 * (yr_3 - anai) + 10 - mnai,
     relative_age = 12 - mnai
+  ) %>%
+  mutate( #normalize
+    score_1 = (score_1 - mean(score_1, na.rm = TRUE)) / sd(score_1, na.rm = TRUE), #nolint
+    score_f_3 = (score_f_3 - mean(score_f_3, na.rm = TRUE)) / sd(score_f_3, na.rm = TRUE), #nolint
+    score_m_3 = (score_m_3 - mean(score_m_3, na.rm = TRUE)) / sd(score_m_3, na.rm = TRUE), #nolint
   )
 
 psen95 <- psen95 %>%
-  mutate(
+  mutate( #clean
     anai = 1900 + as.integer(substr(datenai, 5, 6)),
     mnai = as.integer(substr(datenai, 3, 4)),
     sexe = as.factor(as.integer(sexe) - 1),
@@ -112,6 +112,13 @@ psen95 <- psen95 %>%
     age_6 = 12 * (yr_6 - anai) + 10 - mnai,
     age_9 = 12 * (yr_9 - anai) + 6 - mnai,
     relative_age = 12 - mnai
+  ) %>%
+  mutate(
+    score_f_6 = (score_f_6 - mean(score_f_6, na.rm = TRUE)) / sd(score_f_6, na.rm = TRUE), #nolint
+    score_m_6 = (score_m_6 - mean(score_m_6, na.rm = TRUE)) / sd(score_m_6, na.rm = TRUE), #nolint
+    score_f_9 = (score_f_9 - mean(score_f_9, na.rm = TRUE)) / sd(score_f_9, na.rm = TRUE), #nolint
+    score_m_9 = (score_m_9 - mean(score_m_9, na.rm = TRUE)) / sd(score_m_9, na.rm = TRUE), #nolint
+    score_fl_9 = (score_fl_9 - mean(score_fl_9, na.rm = TRUE)) / sd(score_fl_9, na.rm = TRUE), #nolint
   )
 ```
 \section{2. Naïve Estimation of Month Birth Effects}
